@@ -68,7 +68,7 @@ function stripealipay_link($params)
   $amount = ceil($params['amount'] * 100.00);
   $setcurrency = $params['currency'];
   if ($params['StripeCurrency']) {
-      $exchange = stripealipayexchange($params['currency'], strtoupper($params['StripeCurrency']));
+      $exchange = stripealipay_exchange($params['currency'], strtoupper($params['StripeCurrency']));
       if (!$exchange) {
           return '<div class="alert alert-danger text-center" role="alert">支付汇率错误，请联系客服进行处理</div>';
       }
@@ -147,7 +147,7 @@ function stripealipay_refund($params)
         );
     }
 }
-function stripealipayexchange($from, $to)
+function stripealipay_exchange($from, $to)
 {
     try {
         $url = 'https://raw.githubusercontent.com/DyAxy/ExchangeRatesTable/main/data.json';
