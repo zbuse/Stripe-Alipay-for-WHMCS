@@ -1,8 +1,5 @@
 <?php
-
 use Stripe\StripeClient;
-use WHMCS\Database\Capsule;
-use Illuminate\Database\Schema\Blueprint;
 
 if (!defined("WHMCS")) {
     die("This file cannot be accessed directly");
@@ -67,6 +64,7 @@ function stripealipay_link($params)
   global $_LANG;
   $amount = ceil($params['amount'] * 100.00);
   $setcurrency = $params['currency'];
+  $Methodtype = 'alipay';
   if ($params['StripeCurrency']) {
       $exchange = stripealipay_exchange($params['currency'], strtoupper($params['StripeCurrency']));
       if (!$exchange) {
@@ -75,42 +73,31 @@ function stripealipay_link($params)
   $amount = floor($params['amount'] * $exchange * 100.00);
   $setcurrency = $params['StripeCurrency'];
   }
-        if(isset($_GET['payment_intent'])) {
-  	      $stripe->paymentIntents->retrieve($_GET['payment_intent'],[]);
-	}
 
     try {
         $stripe = new Stripe\StripeClient($params['StripeSkLive']);
         $paymentIntent = null;
-            // 创建支付订单
-            $paymentIntent = $stripe->paymentIntents->create([
-                'amount' => $amount,
-                'currency' => $setcurrency ,
-                'description' => $params['companyname'] . $_LANG['invoicenumber'] . $params['invoiceid'],
-                'metadata' => [
+        $paymentMethod = $stripe->paymentMethods->create(['type' => $Methodtype]);
+        $paymentIntentParams = [
+        'amount' => $amount,
+        'currency' => $setcurrency,
+        'payment_method' => $paymentMethod->id,
+        'payment_method_types' => [$Methodtype],
+        'confirmation_method' => 'manual', // 手动确认支付
+        'confirm' => true, // 直接确认支付
+        'return_url' => $params['systemurl'] . 'viewinvoice.php?paymentsuccess=true&id=' . $params['invoiceid'],
+        'description' => $params['companyname'] . $_LANG['invoicenumber'] . $params['invoiceid'],
+        'metadata' => [
                     'invoice_id' => $params['invoiceid'],
                     'original_amount' => $params['amount']
                 ],
-            ]);
+            ];
+        $paymentIntent = $stripe->paymentIntents->create($paymentIntentParams);
 
     } catch (Exception $e) {
         return '<div class="alert alert-danger text-center" role="alert">支付网关错误，请联系客服进行处理'. $e .'</div>';
     }
-    if ($paymentIntent->status == 'requires_payment_method') {
-        $paymentIntent = $stripe->paymentIntents->update($paymentIntent->id, [
-            'payment_method' => $stripe->paymentMethods->create([
-                'type' => 'alipay'
-            ])
-        ]);
-    }
-    if ($paymentIntent->status == 'requires_confirmation') {
-        $paymentIntent = $stripe->paymentIntents->confirm(
-            $paymentIntent->id,
-            [
-                'return_url' => $params['systemurl'] . 'viewinvoice.php?paymentsuccess=true&id=' . $params['invoiceid'],
-            ]
-        );
-    }
+
     if ($paymentIntent->status == 'requires_action') {
         $url = explode("?", $paymentIntent['next_action']['alipay_handle_redirect']['url']);
         $secret = explode("=", $url[1])[1];
