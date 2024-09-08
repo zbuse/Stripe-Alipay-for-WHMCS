@@ -1,7 +1,6 @@
 <?php
 use Stripe\StripeClient;
 use Stripe\Webhook;
-use WHMCS\Database\Capsule;
 
 require_once __DIR__ . '/../../../init.php';
 require_once __DIR__ . '/../../../includes/gatewayfunctions.php';
@@ -57,8 +56,8 @@ try {
                 0,
                 $params['paymentmethod']
             );
-            echo "Success to addInvoicePayment\n";
 		}
+            echo json_encode(['status' => $paymentIntent->status ]);
     }
     
     
