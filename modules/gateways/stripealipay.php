@@ -99,7 +99,7 @@ function stripealipay_link($params)
     }
 
     if ($paymentIntent->status == 'requires_action') {
-        return '<form action="' . $paymentIntent['next_action']['alipay_handle_redirect']['url']  . '" method="get"><input type="submit" class="btn btn-primary" value="' . $params['langpaynow'] . '" /></form>';
+        return '<a href="' . $paymentIntent['next_action']['alipay_handle_redirect']['url']  . '"  class="btn btn-primary">' . $params['langpaynow'] . '</a>';
     }
     return '<div class="alert alert-danger text-center" role="alert">'. $_LANG['expressCheckoutError'] .'</div>';
 }
