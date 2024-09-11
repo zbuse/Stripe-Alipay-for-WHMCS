@@ -8,6 +8,6 @@ Stripe Alipay for WHMCS Gateway modules
 默认stripe 交易货币为 CNY， 设定其他货币请确认账户是否支持。
 
 
-webhooks 比较烦人， 另外有个想法 需要建立数据库表然后写一个hooks丢给 cron 检测交易订单是否完成然后进行入账操作。
+webhooks 比较烦人， 另外有个想法 需要建立数据库表保存账单ID 和交易 ID，然后写一个hooks丢给 cron 检测交易订单是否完成然后进行入账操作。
 
 太菜鸡写不动代码
