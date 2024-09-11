@@ -73,29 +73,6 @@ function stripealipay_link($params)
   $paymentmethod = $params['paymentmethod'];
   $sessionKey = $paymentmethod . $params['invoiceid'] . round($originalAmount);  // 将金额一并写入防止变动不能请求新的支付
 
-  if (isset($_GET['payment_intent'])) {
-	$paymentId= $_GET['payment_intent'];
-        $paymentIntent = $stripe->paymentIntents->retrieve($paymentId,[]);
-        if ($paymentIntent->status == 'succeeded') {
-            $invoiceId = checkCbInvoiceID($paymentIntent['metadata']['invoice_id'], $gatewayParams['paymentmethod']);
-	    checkCbTransID($paymentId);
-
-	//Get Transactions fee
-	$charge = $stripe->charges->retrieve($paymentIntent->latest_charge, []);
-	$balanceTransaction = $stripe->balanceTransactions->retrieve($charge->balance_transaction, []);
-	$fee = $balanceTransaction->fee / 100.00;
-
-	if ( strtoupper($setcurrency) != strtoupper($balanceTransaction->currency )) {
-        $feeexchange = stripealipay_exchange(strtoupper($balanceTransaction->currency) ,  isset($params['basecurrency']) ? $params['basecurrency'] : $setcurrency  );
-	$fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
-	}
-            logTransaction($gatewayParams['paymentmethod'], $paymentIntent, $params['name'] .': return successful');
-            addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'],$fee,$params['name']);
-	}
-	header("Refresh: 0; url=$return_url");
-	return $paymentIntent->status;
-  }
-
       if ($StripeCurrency !=  $setcurrency ) {
 	  $exchange = stripealipay_exchange( strtoupper($setcurrency) , strtoupper($StripeCurrency) );
       if (!$exchange) {
@@ -103,7 +80,7 @@ function stripealipay_link($params)
       }
       $setcurrency = $StripeCurrency;
       $amount = floor($params['amount'] * $exchange * 100.00);
-  }
+      }
 
 try {
         $paymentIntent = null;
@@ -140,6 +117,24 @@ if (isset($_SESSION[$sessionKey])) {
     if ($paymentIntent->status == 'requires_action') {
         return '<a href="' . $paymentIntent['next_action']['alipay_handle_redirect']['url']  . '"  class="btn btn-primary">' . $params['langpaynow'] . '</a>';
     }
+     //跳转回来直接判断入账
+    if ($paymentIntent->status == 'succeeded') {
+            $invoiceId = checkCbInvoiceID($paymentIntent['metadata']['invoice_id'], $gatewayParams['paymentmethod']);
+	    checkCbTransID($paymentId);
+	//Get Transactions fee
+	$charge = $stripe->charges->retrieve($paymentIntent->latest_charge, []);
+	$balanceTransaction = $stripe->balanceTransactions->retrieve($charge->balance_transaction, []);
+	$fee = $balanceTransaction->fee / 100.00;
+
+	if ( strtoupper($setcurrency) != strtoupper($balanceTransaction->currency )) {
+        $feeexchange = stripealipay_exchange(strtoupper($balanceTransaction->currency) ,  isset($params['basecurrency']) ? $params['basecurrency'] : $setcurrency  );
+	$fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
+	}
+            logTransaction($gatewayParams['paymentmethod'], $paymentIntent, $params['name'] .': return successful');
+            addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'],$fee,$params['name']);
+	header("Refresh: 0; url=$return_url");
+	return $paymentIntent->status;
+	}	
     return '<div class="alert alert-danger text-center" role="alert">'. $_LANG['expressCheckoutError'] .'</div>';
 }
 function stripealipay_refund($params)
