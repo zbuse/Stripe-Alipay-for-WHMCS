@@ -59,7 +59,7 @@ try {
 	$currency = getCurrency( $invoice->userid ); //获取用户使用货币信息
 		
 if ( strtoupper($currency['code'])  != strtoupper($balanceTransaction->currency )) {
-        $feeexchange = stripewechatpay_exchange($currency['code'], strtoupper($balanceTransaction->currency ));
+        $feeexchange = stripewechatpay_exchange(strtoupper($balanceTransaction->currency, $currency['code'] ));
         $fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
 }
             logTransaction($gatewayName, $paymentIntent, $gatewayName.': Callback successful');
