@@ -73,32 +73,29 @@ function stripealipay_link($params)
   $amount = floor($params['amount'] * $exchange * 100.00);
   $setcurrency = $params['StripeCurrency'];
   }
-if (isset($_GET['payment_intent'])) {
         $stripe = new Stripe\StripeClient($params['StripeSkLive']);
-        $paymentId= $_GET['payment_intent'];
+if (isset($_GET['payment_intent'])) {
+	$paymentId= $_GET['payment_intent'];
         $paymentIntent = $stripe->paymentIntents->retrieve($paymentId,[]);
-
-        //Get Transactions fee
-        $charge = $stripe->charges->retrieve($paymentIntent->latest_charge, []);
-        $balanceTransaction = $stripe->balanceTransactions->retrieve($charge->balance_transaction, []);
-        $fee = $balanceTransaction->fee / 100.00;
-if ( strtoupper($params['currency']) != strtoupper($balanceTransaction->currency )) {
-        $feeexchange = stripealipay_exchange($params['currency'], strtoupper($balanceTransaction->currency ));
-        $fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
-}
-
         if ($paymentIntent->status == 'succeeded') {
             $invoiceId = checkCbInvoiceID($paymentIntent['metadata']['invoice_id'], $gatewayParams['paymentmethod']);
-            checkCbTransID($paymentId);
-            logTransaction($gatewayParams['paymentmethod'], $paymentIntent, $gatewayName.': Callback successful');
-            addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'],$fee,$params['paymentmethod']);
-        }
-        header("Refresh:0");
-        return $paymentIntent->status;
+	    checkCbTransID($paymentId);
+
+	//Get Transactions fee
+	$charge = $stripe->charges->retrieve($paymentIntent->latest_charge, []);
+	$balanceTransaction = $stripe->balanceTransactions->retrieve($charge->balance_transaction, []);
+	$fee = $balanceTransaction->fee / 100.00;
+if ( strtoupper($params['currency']) != strtoupper($balanceTransaction->currency )) {
+        $feeexchange = stripealipay_exchange($params['currency'], strtoupper($balanceTransaction->currency ));
+	$fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
 }
-    
+            logTransaction($gatewayParams['paymentmethod'], $paymentIntent, $gatewayName.': Callback successful');
+            addInvoicePayment($params['invoiceid'], $paymentId,$params['amount'],$fee,$params['paymentmethod']);
+	}
+	header("Refresh:0");
+	return $paymentIntent->status;
+}
     try {
-        $stripe = new Stripe\StripeClient($params['StripeSkLive']);
         $paymentIntent = null;
         $paymentMethod = $stripe->paymentMethods->create(['type' => $Methodtype]);
         $paymentIntentParams = [
@@ -106,8 +103,7 @@ if ( strtoupper($params['currency']) != strtoupper($balanceTransaction->currency
         'currency' => $setcurrency,
         'payment_method' => $paymentMethod->id,
         'payment_method_types' => [$Methodtype],
-        'confirmation_method' => 'manual', // 手动确认支付
-        'confirm' => true, // 直接确认支付
+        'confirm' => true,
         'return_url' => $params['systemurl'] . 'viewinvoice.php?paymentsuccess=true&id=' . $params['invoiceid'],
         'description' => $params['companyname'] . $_LANG['invoicenumber'] . $params['invoiceid'],
         'metadata' => [
@@ -116,7 +112,9 @@ if ( strtoupper($params['currency']) != strtoupper($balanceTransaction->currency
                 ],
             ];
         $paymentIntent = $stripe->paymentIntents->create($paymentIntentParams);
-
+    if ($paymentIntent->status == 'requires_confirmation') {
+        $paymentIntent = $stripe->paymentIntents->confirm($paymentIntent->id);
+    }
     } catch (Exception $e) {
         return '<div class="alert alert-danger text-center" role="alert">支付网关错误，请联系客服进行处理'. $e .'</div>';
     }
