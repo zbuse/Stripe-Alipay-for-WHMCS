@@ -1,4 +1,5 @@
 <?php
+session_start();
 use Stripe\StripeClient;
 
 if (!defined("WHMCS")) {
@@ -69,6 +70,8 @@ function stripealipay_link($params)
   $Methodtype = 'alipay';
   $stripe = new Stripe\StripeClient($params['StripeSkLive']);
   $return_url = $params['systemurl'] . 'viewinvoice.php?paymentsuccess=true&id=' . $params['invoiceid'];
+  $paymentmethod=$params['paymentmethod']
+  $sessionKey = $paymentmethod . $params['invoiceid'] . round($originalAmount);  // 将金额一并写入防止变动不能请求新的支付
 
   if (isset($_GET['payment_intent'])) {
 	$paymentId= $_GET['payment_intent'];
@@ -118,7 +121,15 @@ try {
                     'original_amount' => $originalAmount
                 ],
             ];
-        $paymentIntent = $stripe->paymentIntents->create($paymentIntentParams);
+//将paymentIntentId存入 session 避免多次创建交易请求
+if (isset($_SESSION[$sessionKey])) {
+     $paymentIntentId = $_SESSION[$sessionKey];
+     $paymentIntent = $stripe->paymentIntents->retrieve($paymentIntentId);
+}else {
+       $paymentIntent = $stripe->paymentIntents->create($paymentIntentParams);
+       $_SESSION[$sessionKey] = $paymentIntent->id; 
+}	
+	
     if ($paymentIntent->status == 'requires_confirmation') {
         $paymentIntent = $stripe->paymentIntents->confirm($paymentIntent->id);
     }
