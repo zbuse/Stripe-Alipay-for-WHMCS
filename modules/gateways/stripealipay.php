@@ -86,8 +86,8 @@ function stripealipay_link($params)
         $feeexchange = stripealipay_exchange(strtoupper($balanceTransaction->currency) ,  isset($params['basecurrency']) ? $params['basecurrency'] : $setcurrency  );
 	$fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
 	}
-            logTransaction($gatewayParams['paymentmethod'], $paymentIntent, $params['name'] .': Callback successful');
-            addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'],$fee,$params['paymentmethod']);
+            logTransaction($gatewayParams['paymentmethod'], $paymentIntent, $params['name'] .': return successful');
+            addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'],$fee,$params['name']);
 	}
 	header("Refresh: 0; url=$return_url");
 	return $paymentIntent->status;
