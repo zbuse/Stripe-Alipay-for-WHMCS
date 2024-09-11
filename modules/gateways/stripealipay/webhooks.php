@@ -15,7 +15,7 @@ $gatewayName = $gatewayParams['name'];
 if (!defined("WHMCS")) {
     die("This file cannot be accessed directly");
 }
-if (!$gatewayParams'type']) {
+if (!$gatewayParams['type']) {
     die("Module Not Activated");
 }
 if (!isset($_SERVER['HTTP_STRIPE_SIGNATURE'])) {
@@ -28,7 +28,7 @@ $event = null;
 
 try {
     $event = Webhook::constructEvent(
-        $payload, $sig_header, $gatewayParams'StripeWebhookKey']
+        $payload, $sig_header, $gatewayParams['StripeWebhookKey']
     );
 } catch(\UnexpectedValueException $e) {
     logTransaction($gatewayName, $e, $gatewayName.': Invalid payload');
@@ -42,7 +42,7 @@ try {
 
 try {
     if ($event->type == 'payment_intent.succeeded') {
-        $stripe = new Stripe\StripeClient($gatewayParams'StripeSkLive']);
+        $stripe = new Stripe\StripeClient($gatewayParams['StripeSkLive']);
         $paymentId = $event->data->object->id;
 
         $paymentIntent = $stripe->paymentIntents->retrieve($paymentId,[]);
@@ -63,7 +63,7 @@ if ( strtoupper($currency['code'])  != strtoupper($balanceTransaction->currency 
         $fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
 }
             logTransaction($gatewayName, $paymentIntent, $gatewayName.': Callback successful');
-             addInvoicePayment($invoiceId, $paymentId,$invoice->total,$fee,$gatewayName);
+             addInvoicePayment($invoiceId, $paymentId,$paymentIntent['metadata']['original_amount'],$fee,$gatewayName);
 		}
             echo json_encode(['status' => $paymentIntent->status ]);
     }
