@@ -84,11 +84,11 @@ function stripealipay_link($params)
 
 try {
         $paymentIntent = null;
-        $paymentMethod = $stripe->paymentMethods->create(['type' => $Methodtype]);
+        $paymentMethods = $stripe->paymentMethods->create(['type' => $Methodtype]);
         $paymentIntentParams = [
         'amount' => $amount,
         'currency' => $setcurrency ,
-        'payment_method' => $paymentMethod->id,
+        'payment_method' => $paymentMethods->id,
         'payment_method_types' => [$Methodtype],
         'confirm' => true,
         'return_url' => $return_url,
@@ -119,7 +119,7 @@ if (isset($_SESSION[$sessionKey])) {
     }
      //跳转回来直接判断入账
     if ($paymentIntent->status == 'succeeded') {
-            $invoiceId = checkCbInvoiceID($paymentIntent['metadata']['invoice_id'], $gatewayParams['paymentmethod']);
+            $invoiceId = checkCbInvoiceID($paymentIntent['metadata']['invoice_id'], $paymentmethod );
 	    checkCbTransID($paymentId);
 	//Get Transactions fee
 	$charge = $stripe->charges->retrieve($paymentIntent->latest_charge, []);
@@ -130,13 +130,14 @@ if (isset($_SESSION[$sessionKey])) {
         $feeexchange = stripealipay_exchange(strtoupper($balanceTransaction->currency) ,  isset($params['basecurrency']) ? $params['basecurrency'] : $setcurrency  );
 	$fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
 	}
-            logTransaction($gatewayParams['paymentmethod'], $paymentIntent, $params['name'] .': return successful');
+            logTransaction($paymentmethod, $paymentIntent, $params['name'] .': return successful');
             addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'],$fee,$params['name']);
 	header("Refresh: 0; url=$return_url");
 	return $paymentIntent->status;
 	}	
     return '<div class="alert alert-danger text-center" role="alert">'. $_LANG['expressCheckoutError'] .'</div>';
 }
+
 function stripealipay_refund($params)
 {
     $stripe = new Stripe\StripeClient($params['StripeSkLive']);
@@ -165,6 +166,7 @@ function stripealipay_refund($params)
         );
     }
 }
+
 function stripealipay_exchange($from, $to)
 {
     try {
