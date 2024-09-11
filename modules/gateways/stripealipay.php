@@ -94,6 +94,7 @@ if ( strtoupper($params['currency']) != strtoupper($balanceTransaction->currency
             addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'],$fee,$params['paymentmethod']);
         }
         header("Refresh:0");
+        return $paymentIntent->status;
 }
     
     try {
