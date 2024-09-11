@@ -90,7 +90,7 @@ if ( strtoupper($params['currency']) != strtoupper($balanceTransaction->currency
 	$fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
 }
             logTransaction($gatewayParams['paymentmethod'], $paymentIntent, $gatewayName.': Callback successful');
-            addInvoicePayment($params['invoiceid'], $paymentId,$params['amount'],$fee,$params['paymentmethod']);
+            addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'] ,$fee,$params['paymentmethod']);
 	}
 	header("Refresh:0");
 	return $paymentIntent->status;
