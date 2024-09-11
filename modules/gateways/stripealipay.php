@@ -94,7 +94,7 @@ function stripealipay_link($params)
   }
 
       if ($StripeCurrency !=  $setcurrency ) {
-	  $exchange = stripealipay_exchange($setcurrency , strtoupper($setcurrency));
+	  $exchange = stripealipay_exchange( strtoupper($setcurrency) , strtoupper($StripeCurrency) );
       if (!$exchange) {
           return '<div class="alert alert-danger text-center" role="alert">支付汇率错误，请联系客服进行处理</div>';
       }
