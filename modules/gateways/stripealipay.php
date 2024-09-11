@@ -131,7 +131,7 @@ if (isset($_SESSION[$sessionKey])) {
 	$fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
 	}
             logTransaction($paymentmethod, $paymentIntent, $params['name'] .': return successful');
-            addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'],$fee,$params['name']);
+            addInvoicePayment($params['invoiceid'], $paymentIntent->id ,$paymentIntent['metadata']['original_amount'],$fee,$params['name']);
 	header("Refresh: 0; url=$return_url");
 	return $paymentIntent->status;
 	}	
