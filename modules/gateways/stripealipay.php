@@ -32,12 +32,15 @@ function stripealipay_config($params)
             'FriendlyName' => 'Webhook 密钥',
             'Type' => 'text',
             'Size' => 30,
-            'Description' => '填写从Stripe获取到的Webhook密钥签名',
-        ),
+      'Description' => "<br> <div class='alert alert-success' role='alert' style='margin-bottom: 0px;'>Webhook设置 <a href='https://dashboard.stripe.com/webhooks' target='_blank'><span class='glyphicon glyphicon-new-window'></span> Stripe webhooks</a> 侦听的事件:payment_intent.succeeded <br>
+      Stripe webhook " .$params['systemurl']."modules/gateways/stripealipay/webhooks.php
+               </div><style>* {font-family: Microsoft YaHei Light , Microsoft YaHei}</style>"
+	),
         'StripeCurrency' => array(
-            'FriendlyName' => '发起交易货币[可留空]',
+            'FriendlyName' => '发起交易货币[默认CNY]',
             'Type' => 'text',
-            'Size' => 30,
+	    "Default" => "CNY",
+	    'Size' => 30,
             'Description' => '默认获取WHMCS的货币，与您设置的发起交易货币进行汇率转换，再使用转换后的价格和货币向Stripe请求',
         ),
         'RefundFixed' => array(
@@ -51,30 +54,22 @@ function stripealipay_config($params)
             'FriendlyName' => '退款扣除百分比金额',
             'Type' => 'text',
             'Size' => 30,
-      'Default' => '0.00',
-      'Description' => "% <br><br> <div class='alert alert-success' role='alert' style='margin-bottom: 0px;'>Webhook设置 <a href='https://dashboard.stripe.com/webhooks' target='_blank'><span class='glyphicon glyphicon-new-window'></span> Stripe webhooks</a> 侦听的事件:payment_intent.succeeded <br>
-      Stripe webhook " .$params['systemurl']."modules/gateways/stripealipay/webhooks.php
-               </div><style>* {font-family: Microsoft YaHei Light , Microsoft YaHei}</style>"
-        )
+	    'Description' => "%",
+	),
     );
 }
 
 function stripealipay_link($params)
 {
   global $_LANG;
+  $originalAmount = isset($params['basecurrencyamount']) ? $params['basecurrencyamount'] : $params['amount']; //解决Convert To For Processing后出现入账金额不对问题
   $amount = ceil($params['amount'] * 100.00);
   $setcurrency = $params['currency'];
   $Methodtype = 'alipay';
-  if ($params['StripeCurrency']) {
-      $exchange = stripealipay_exchange($params['currency'], strtoupper($params['StripeCurrency']));
-      if (!$exchange) {
-          return '<div class="alert alert-danger text-center" role="alert">支付汇率错误，请联系客服进行处理</div>';
-      }
-  $amount = floor($params['amount'] * $exchange * 100.00);
-  $setcurrency = $params['StripeCurrency'];
-  }
-        $stripe = new Stripe\StripeClient($params['StripeSkLive']);
-if (isset($_GET['payment_intent'])) {
+  $stripe = new Stripe\StripeClient($params['StripeSkLive']);
+  $return_url = $params['systemurl'] . 'viewinvoice.php?paymentsuccess=true&id=' . $params['invoiceid'];
+
+  if (isset($_GET['payment_intent'])) {
 	$paymentId= $_GET['payment_intent'];
         $paymentIntent = $stripe->paymentIntents->retrieve($paymentId,[]);
         if ($paymentIntent->status == 'succeeded') {
@@ -85,30 +80,41 @@ if (isset($_GET['payment_intent'])) {
 	$charge = $stripe->charges->retrieve($paymentIntent->latest_charge, []);
 	$balanceTransaction = $stripe->balanceTransactions->retrieve($charge->balance_transaction, []);
 	$fee = $balanceTransaction->fee / 100.00;
-if ( strtoupper($params['currency']) != strtoupper($balanceTransaction->currency )) {
-        $feeexchange = stripealipay_exchange($params['currency'], strtoupper($balanceTransaction->currency ));
+
+	if ( strtoupper($setcurrency) != strtoupper($balanceTransaction->currency )) {
+        $feeexchange = stripealipay_exchange(strtoupper($balanceTransaction->currency) ,  isset($params['basecurrency']) ? $params['basecurrency'] : $params['currency']  );
 	$fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
-}
-            logTransaction($gatewayParams['paymentmethod'], $paymentIntent, $gatewayName.': Callback successful');
-            addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'] ,$fee,$params['paymentmethod']);
 	}
-	header("Refresh:0");
+            logTransaction($gatewayParams['paymentmethod'], $paymentIntent, $gatewayName.': Callback successful');
+            addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'],$fee,$params['paymentmethod']);
+	}
+	header("Refresh: 0; url=$return_url");
 	return $paymentIntent->status;
 }
-    try {
+
+  if ($params['StripeCurrency'] !=  $setcurrency ) {
+      $exchange = stripealipay_exchange($params['currency'], strtoupper($params['StripeCurrency']));
+      if (!$exchange) {
+          return '<div class="alert alert-danger text-center" role="alert">支付汇率错误，请联系客服进行处理</div>';
+      }
+      $amount = floor($params['amount'] * $exchange * 100.00);
+      $setcurrency = $params['StripeCurrency'];
+  }
+
+try {
         $paymentIntent = null;
         $paymentMethod = $stripe->paymentMethods->create(['type' => $Methodtype]);
         $paymentIntentParams = [
         'amount' => $amount,
-        'currency' => $setcurrency,
+        'currency' => $setcurrency ,
         'payment_method' => $paymentMethod->id,
         'payment_method_types' => [$Methodtype],
         'confirm' => true,
-        'return_url' => $params['systemurl'] . 'viewinvoice.php?paymentsuccess=true&id=' . $params['invoiceid'],
+        'return_url' => $return_url,
         'description' => $params['companyname'] . $_LANG['invoicenumber'] . $params['invoiceid'],
         'metadata' => [
                     'invoice_id' => $params['invoiceid'],
-                    'original_amount' => $params['amount']
+                    'original_amount' => $originalAmount
                 ],
             ];
         $paymentIntent = $stripe->paymentIntents->create($paymentIntentParams);
