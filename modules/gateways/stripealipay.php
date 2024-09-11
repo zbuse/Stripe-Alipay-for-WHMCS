@@ -92,7 +92,7 @@ function stripealipay_link($params)
 	header("Refresh: 0; url=$return_url");
 	return $paymentIntent->status;
   }
-   return print_r($params);
+
       if ($StripeCurrency !=  $setcurrency ) {
 	  $exchange = stripealipay_exchange($setcurrency , strtoupper($setcurrency));
       if (!$exchange) {
