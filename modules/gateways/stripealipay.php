@@ -87,7 +87,7 @@ function stripealipay_link($params)
 	$fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
 	}
             logTransaction($gatewayParams['paymentmethod'], $paymentIntent, $gatewayName.': Callback successful');
-            addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'],$fee,$params['name']);
+            addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'],$fee,$params['paymentmethod']);
 	}
 	header("Refresh: 0; url=$return_url");
 	return $paymentIntent->status;
