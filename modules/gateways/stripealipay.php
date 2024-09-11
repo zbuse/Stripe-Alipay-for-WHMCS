@@ -73,7 +73,29 @@ function stripealipay_link($params)
   $amount = floor($params['amount'] * $exchange * 100.00);
   $setcurrency = $params['StripeCurrency'];
   }
+if (isset($_GET['payment_intent'])) {
+        $stripe = new Stripe\StripeClient($params['StripeSkLive']);
+        $paymentId= $_GET['payment_intent'];
+        $paymentIntent = $stripe->paymentIntents->retrieve($paymentId,[]);
 
+        //Get Transactions fee
+        $charge = $stripe->charges->retrieve($paymentIntent->latest_charge, []);
+        $balanceTransaction = $stripe->balanceTransactions->retrieve($charge->balance_transaction, []);
+        $fee = $balanceTransaction->fee / 100.00;
+if ( strtoupper($params['currency']) != strtoupper($balanceTransaction->currency )) {
+        $feeexchange = stripealipay_exchange($params['currency'], strtoupper($balanceTransaction->currency ));
+        $fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
+}
+
+        if ($paymentIntent->status == 'succeeded') {
+            $invoiceId = checkCbInvoiceID($paymentIntent['metadata']['invoice_id'], $gatewayParams['paymentmethod']);
+            checkCbTransID($paymentId);
+            logTransaction($gatewayParams['paymentmethod'], $paymentIntent, $gatewayName.': Callback successful');
+            addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'],$fee,$params['paymentmethod']);
+        }
+        header("Refresh:0");
+}
+    
     try {
         $stripe = new Stripe\StripeClient($params['StripeSkLive']);
         $paymentIntent = null;
