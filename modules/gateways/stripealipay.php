@@ -63,6 +63,7 @@ function stripealipay_link($params)
 {
   global $_LANG;
   $originalAmount = isset($params['basecurrencyamount']) ? $params['basecurrencyamount'] : $params['amount']; //解决Convert To For Processing后出现入账金额不对问题
+  $StripeCurrency = empty($params['StripeCurrency']) ? "CNY" : $params['StripeCurrency'];
   $amount = ceil($params['amount'] * 100.00);
   $setcurrency = $params['currency'];
   $Methodtype = 'alipay';
@@ -82,23 +83,23 @@ function stripealipay_link($params)
 	$fee = $balanceTransaction->fee / 100.00;
 
 	if ( strtoupper($setcurrency) != strtoupper($balanceTransaction->currency )) {
-        $feeexchange = stripealipay_exchange(strtoupper($balanceTransaction->currency) ,  isset($params['basecurrency']) ? $params['basecurrency'] : $params['currency']  );
+        $feeexchange = stripealipay_exchange(strtoupper($balanceTransaction->currency) ,  isset($params['basecurrency']) ? $params['basecurrency'] : $setcurrency  );
 	$fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
 	}
             logTransaction($gatewayParams['paymentmethod'], $paymentIntent, $gatewayName.': Callback successful');
-            addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'],$fee,$params['paymentmethod']);
+            addInvoicePayment($params['invoiceid'], $paymentId,$paymentIntent['metadata']['original_amount'],$fee,$params['name']);
 	}
 	header("Refresh: 0; url=$return_url");
 	return $paymentIntent->status;
-}
-
-  if ($params['StripeCurrency'] !=  $setcurrency ) {
-      $exchange = stripealipay_exchange($params['currency'], strtoupper($params['StripeCurrency']));
+  }
+   return print_r($params);
+      if ($StripeCurrency !=  $setcurrency ) {
+	  $exchange = stripealipay_exchange($setcurrency , strtoupper($setcurrency));
       if (!$exchange) {
           return '<div class="alert alert-danger text-center" role="alert">支付汇率错误，请联系客服进行处理</div>';
       }
+      $setcurrency = $StripeCurrency;
       $amount = floor($params['amount'] * $exchange * 100.00);
-      $setcurrency = $params['StripeCurrency'];
   }
 
 try {
