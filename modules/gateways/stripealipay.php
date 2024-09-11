@@ -70,7 +70,7 @@ function stripealipay_link($params)
   $Methodtype = 'alipay';
   $stripe = new Stripe\StripeClient($params['StripeSkLive']);
   $return_url = $params['systemurl'] . 'viewinvoice.php?paymentsuccess=true&id=' . $params['invoiceid'];
-  $paymentmethod=$params['paymentmethod']
+  $paymentmethod = $params['paymentmethod'];
   $sessionKey = $paymentmethod . $params['invoiceid'] . round($originalAmount);  // 将金额一并写入防止变动不能请求新的支付
 
   if (isset($_GET['payment_intent'])) {
