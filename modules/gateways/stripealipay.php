@@ -120,7 +120,7 @@ if (isset($_SESSION[$sessionKey])) {
      //跳转回来直接判断入账
     if ($paymentIntent->status == 'succeeded') {
             $invoiceId = checkCbInvoiceID($paymentIntent['metadata']['invoice_id'], $paymentmethod );
-	    checkCbTransID($paymentId);
+	    checkCbTransID($paymentIntent->id);
 	//Get Transactions fee
 	$charge = $stripe->charges->retrieve($paymentIntent->latest_charge, []);
 	$balanceTransaction = $stripe->balanceTransactions->retrieve($charge->balance_transaction, []);
