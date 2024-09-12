@@ -111,7 +111,7 @@ if (isset($_SESSION[$sessionKey])) {
         $paymentIntent = $stripe->paymentIntents->confirm($paymentIntent->id);
     }
     } catch (Exception $e) {
-        return '<div class="alert alert-danger text-center" role="alert">支付网关错误，请联系客服进行处理'. $e .'</div>';
+        return '<div class="alert alert-danger text-center" role="alert">支付网关错误，请联系客服进行处理</div>';
     }
 
     if ($paymentIntent->status == 'requires_action') {
