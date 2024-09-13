@@ -7,8 +7,6 @@ require_once __DIR__ . '/../../../init.php';
 require_once __DIR__ . '/../../../includes/gatewayfunctions.php';
 require_once __DIR__ . '/../../../includes/invoicefunctions.php';
 
-
-
 $gatewayParams = getGatewayVariables('stripealipay');
 $gatewayName = $gatewayParams['name'];
 
@@ -54,21 +52,18 @@ catch(Stripe\Exception\SignatureVerificationException $e) {
     exit();
 }
 
-$stripe = new Stripe\StripeClient($gatewayParams['StripeSkLive']);
-$paymentIntent = $stripe->paymentIntents->retrieve($paymentId,[]);
-$status = $paymentIntent->status;
+try {
+    if( $event->type == 'payment_intent.succeeded') {
+    //$event->type == 'payment_intent.succeeded'
+    //$paymentIntent->status == 'succeeded'
+	    
+  $stripe = new Stripe\StripeClient($gatewayParams['StripeSkLive']);
+  $paymentIntent = $stripe->paymentIntents->retrieve($paymentId,[]);
 
 //验证回传信息避免多个站点的webhook混乱，返回状态错误。
 if (strpos( $paymentIntent['description'] , $gatewayParams['companyname'] ) !== false) {  die("nothing to do"); }   
-
-
-checkCbTransID($paymentId);    //检查到账单已入账则终止运行
-$invoiceId = checkCbInvoiceID($paymentIntent['metadata']['invoice_id'], $gatewayName);
-
-try ( $status == 'payment_intent.succeeded' || $status == 'succeeded' ) {
-    //$event->type == 'payment_intent.succeeded'
-    //$paymentIntent->status == 'succeeded'
-
+   checkCbTransID($paymentId);    //检查到账单已入账则终止运行
+   $invoiceId = checkCbInvoiceID($paymentIntent['metadata']['invoice_id'], $gatewayName);
     //Get Transactions fee
     $charge = $stripe->charges->retrieve($paymentIntent->latest_charge, []);
     $balanceTransaction = $stripe->balanceTransactions->retrieve($charge->balance_transaction, []);
@@ -78,7 +73,7 @@ try ( $status == 'payment_intent.succeeded' || $status == 'succeeded' ) {
     $currency = getCurrency( $invoice->userid );
     //获取用户使用货币信息
     if ( strtoupper($currency['code'])  != strtoupper($balanceTransaction->currency )) {
-        $feeexchange = exchange(strtoupper($balanceTransaction->currency, $currency['code'] ));
+        $feeexchange = exchange($balanceTransaction->currency, $currency['code']);
         $fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
     }
     logTransaction($gatewayName, $paymentIntent, $gatewayName.': Callback successful');
@@ -90,3 +85,4 @@ catch (Exception $e) {
     echo $e->getMessage;
     http_response_code(400);
 }
+
