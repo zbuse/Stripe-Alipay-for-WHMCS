@@ -61,7 +61,7 @@ try {
   $paymentIntent = $stripe->paymentIntents->retrieve($paymentId,[]);
 
 //验证回传信息避免多个站点的webhook混乱，返回状态错误。
-if (strpos( $paymentIntent['description'] , $gatewayParams['companyname'] ) !== false) {  die("nothing to do"); }   
+  if ( $paymentIntent['metadata']['description'] != $gatewayParams['companyname']  ) {  die("nothing to do"); }
    checkCbTransID($paymentId);    //检查到账单已入账则终止运行
    $invoiceId = checkCbInvoiceID($paymentIntent['metadata']['invoice_id'], $gatewayName);
     //Get Transactions fee
