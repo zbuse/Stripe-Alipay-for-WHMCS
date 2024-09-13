@@ -124,13 +124,13 @@ if (isset($_SESSION[$sessionKey])) {
 	$charge = $stripe->charges->retrieve($paymentIntent->latest_charge, []);
 	$balanceTransaction = $stripe->balanceTransactions->retrieve($charge->balance_transaction, []);
 	$fee = $balanceTransaction->fee / 100.00;
-
-	if ( strtoupper($setcurrency) != strtoupper($balanceTransaction->currency )) {
-        $feeexchange = stripealipay_exchange(strtoupper($balanceTransaction->currency) ,  isset($params['basecurrency']) ? $params['basecurrency'] : $setcurrency  );
+	$userCurrency = getCurrency($params['clientdetails']['userid'])['code'];
+	if ( strtoupper($userCurrency) != strtoupper($balanceTransaction->currency )) {
+	$feeexchange = stripealipay_exchange(strtoupper($balanceTransaction->currency) ,  isset($params['basecurrency']) ? $params['basecurrency'] : $userCurrency );	
 	$fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
 	}
             logTransaction($paymentmethod, $paymentIntent, $params['name'] .': return successful');
-            addInvoicePayment($params['invoiceid'], $paymentIntent->id ,$paymentIntent['metadata']['original_amount'],$fee,$params['name']);
+            addInvoicePayment($params['invoiceid'], $paymentIntent->id ,$paymentIntent['metadata']['original_amount'],$fee,$params['paymentmethod']);
 	header("Refresh: 0; url=$return_url");
 	return $paymentIntent->status;
 	}	
