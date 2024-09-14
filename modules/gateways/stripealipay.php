@@ -63,12 +63,11 @@ function stripealipay_config($params)
 function stripealipay_link($params)
 {
   global $_LANG;
+  $stripe = new Stripe\StripeClient($params['StripeSkLive']);
   $originalAmount = isset($params['basecurrencyamount']) ? $params['basecurrencyamount'] : $params['amount']; //解决Convert To For Processing后出现入账金额不对问题
   $StripeCurrency = empty($params['StripeCurrency']) ? "CNY" : $params['StripeCurrency'];
   $amount = ceil($params['amount'] * 100.00);
   $setcurrency = $params['currency'];
-  $Methodtype = 'alipay';
-  $stripe = new Stripe\StripeClient($params['StripeSkLive']);
   $return_url = $params['systemurl'] . 'viewinvoice.php?paymentsuccess=true&id=' . $params['invoiceid'];
   $paymentmethod = $params['paymentmethod'];
   $sessionKey = $paymentmethod . $params['invoiceid'] . round($originalAmount);  // 将金额一并写入防止变动不能请求新的支付
@@ -81,15 +80,13 @@ function stripealipay_link($params)
       $setcurrency = $StripeCurrency;
       $amount = floor($params['amount'] * $exchange * 100.00);
       }
-
 try {
         $paymentIntent = null;
-        $paymentMethods = $stripe->paymentMethods->create(['type' => $Methodtype]);
         $paymentIntentParams = [
         'amount' => $amount,
         'currency' => $setcurrency ,
-        'payment_method' => $paymentMethods->id,
-        'payment_method_types' => [$Methodtype],
+        'payment_method' => $stripe->paymentMethods->create(['type' => 'alipay'])->id,
+        'payment_method_types' => ['alipay'],
         'confirm' => true,
         'return_url' => $return_url,
         'description' => $params['companyname'] . $_LANG['invoicenumber'] . $params['invoiceid'],
@@ -107,10 +104,6 @@ if (isset($_SESSION[$sessionKey])) {
        $paymentIntent = $stripe->paymentIntents->create($paymentIntentParams);
        $_SESSION[$sessionKey] = $paymentIntent->id; 
 }	
-	
-    if ($paymentIntent->status == 'requires_confirmation') {
-        $paymentIntent = $stripe->paymentIntents->confirm($paymentIntent->id);
-    }
     } catch (Exception $e) {
         return '<div class="alert alert-danger text-center" role="alert">支付网关错误，请联系客服进行处理'. $e->getMessage() .'</div>';
     }
@@ -127,7 +120,7 @@ if (isset($_SESSION[$sessionKey])) {
 	$fee = $balanceTransaction->fee / 100.00;
 	$userCurrency = getCurrency($params['clientdetails']['userid'])['code'];
 	if ( strtoupper($userCurrency) != strtoupper($balanceTransaction->currency )) {
-	$feeexchange = stripealipay_exchange(strtoupper($balanceTransaction->currency) ,  isset($params['basecurrency']) ? $params['basecurrency'] : $userCurrency );	
+	$feeexchange = stripealipay_exchange($balanceTransaction->currency ,  isset($params['basecurrency']) ? $params['basecurrency'] : $userCurrency );	
 	$fee = floor($balanceTransaction->fee * $feeexchange / 100.00);
 	}
             logTransaction($paymentmethod, $paymentIntent, $params['name'] .': return successful');
