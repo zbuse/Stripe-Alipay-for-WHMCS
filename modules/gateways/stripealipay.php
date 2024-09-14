@@ -92,7 +92,7 @@ try {
         'description' => $params['companyname'] . $_LANG['invoicenumber'] . $params['invoiceid'],
         'metadata' => [
                     'invoice_id' => $params['invoiceid'],
-                    'original_amount' => $originalAmount
+                    'original_amount' => $originalAmount,
 		    'description' => $params['companyname'],
                 ],
             ];
