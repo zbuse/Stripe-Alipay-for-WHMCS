@@ -1,5 +1,4 @@
 <?php
-session_start();
 use Stripe\StripeClient;
 
 if (!defined("WHMCS")) {
@@ -63,6 +62,7 @@ function stripealipay_config($params)
 function stripealipay_link($params)
 {
   global $_LANG;
+  session_start();
   $stripe = new Stripe\StripeClient($params['StripeSkLive']);
   $originalAmount = isset($params['basecurrencyamount']) ? $params['basecurrencyamount'] : $params['amount']; //解决Convert To For Processing后出现入账金额不对问题
   $StripeCurrency = empty($params['StripeCurrency']) ? "CNY" : $params['StripeCurrency'];
